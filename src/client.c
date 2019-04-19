@@ -50,15 +50,15 @@ urlinfo_t *parse_url(char *url)
     // IMPLEMENT ME! //
     ///////////////////
 
-    char *uri_ptr = NULL;
+    char *uri_ptr;
     // NOTE: A lack of backslash doesn't necessarily denote a bad URI, but
     // checking for a properly formed hostname in a URI could get a bit messy
     // in C without some sort of library for pattern/regex parsing.
-    uri_ptr = strchr(hostname, "/");
+    uri_ptr = strchr(hostname, '/');
     uri_ptr[0] = NULL;
     urlinfo->path = strdup(uri_ptr + 1);
 
-    uri_ptr = strchr(hostname, ":");
+    uri_ptr = strchr(hostname, ':');
     if (uri_ptr != NULL)
     {
         uri_ptr[0] = NULL;
@@ -93,11 +93,6 @@ int send_request(int fd, char *hostname, char *port, char *path)
     // IMPLEMENT ME! //
     ///////////////////
 
-    time_t uet;
-    struct tm *time_info;
-    time(&uet);
-    time_info = localtime(&uet);
-
     int header_length =
         sprintf(request,
                 "GET /%s HTTP/1.1\n"
@@ -109,7 +104,7 @@ int send_request(int fd, char *hostname, char *port, char *path)
     printf("Request header: %s\n", request);
 
     // Send it all!
-    int rv = send(fd, request, header_length, 0);
+    rv = send(fd, request, header_length, 0);
 
     if (rv < 0)
     {
@@ -142,6 +137,40 @@ int main(int argc, char *argv[])
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+
+    urlinfo_t *requested_url = parse_url(argv[1]);
+    int newfd = get_socket(requested_url->hostname, requested_url->port);
+    // int bytes_recvd;
+
+    if (newfd == -1)
+    {
+        fprintf(stderr, "Fatal: Error binding to socket\n");
+        exit(1);
+    }
+
+    int fd_request = send_request(newfd, requested_url->hostname, requested_url->port, requested_url->path);
+
+    printf("# bytes sent: %i\n\n", fd_request);
+
+    if (fd_request >= 0)
+    {
+        while ((numbytes = recv(newfd, buf, BUFSIZE - 1, 0)) > 0)
+        {
+            printf("%s\n", buf);
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Fatal: Local network error!\n");
+        exit(1);
+    }
+
+    free(requested_url->hostname);
+    free(requested_url->port);
+    free(requested_url->path);
+    free(requested_url);
+
+    close(newfd);
 
     return 0;
 }
