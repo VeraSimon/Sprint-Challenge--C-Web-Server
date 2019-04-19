@@ -51,6 +51,9 @@ urlinfo_t *parse_url(char *url)
     ///////////////////
 
     char *uri_ptr = NULL;
+    // NOTE: A lack of backslash doesn't necessarily denote a bad URI, but
+    // checking for a properly formed hostname in a URI could get a bit messy
+    // in C without some sort of library for pattern/regex parsing.
     uri_ptr = strchr(hostname, "/");
     uri_ptr[0] = NULL;
     urlinfo->path = strdup(uri_ptr + 1);
@@ -64,6 +67,7 @@ urlinfo_t *parse_url(char *url)
     else
     {
         // TODO: (stretch) Implement URLs without ports
+        urlinfo->port = "80";
     }
 
     return urlinfo;
@@ -89,7 +93,31 @@ int send_request(int fd, char *hostname, char *port, char *path)
     // IMPLEMENT ME! //
     ///////////////////
 
-    return 0;
+    time_t uet;
+    struct tm *time_info;
+    time(&uet);
+    time_info = localtime(&uet);
+
+    int header_length =
+        sprintf(request,
+                "GET /%s HTTP/1.1\n"
+                "Host: %s:%s\n"
+                "Connection: close\n"
+                "\n",
+                path, hostname, port);
+
+    printf("Request header: %s\n", request);
+
+    // Send it all!
+    int rv = send(fd, request, header_length, 0);
+
+    if (rv < 0)
+    {
+        perror("send");
+    }
+
+    // return 0;
+    return rv;
 }
 
 int main(int argc, char *argv[])
