@@ -62,7 +62,7 @@ urlinfo_t *parse_url(char *url)
     }
     else
     {
-        path = "/";
+        path = NULL;
     }
 
     uri_ptr = strchr(hostname, ':');
@@ -116,7 +116,7 @@ int send_request(int fd, char *hostname, char *port, char *path)
                 "\n",
                 path, hostname, port);
 
-    printf("~Request header~\n%s\n", request);
+    printf("\n~Request header~\n%s\n", request);
 
     // Send it all!
     rv = send(fd, request, header_length, 0);
@@ -154,9 +154,8 @@ int main(int argc, char *argv[])
     ///////////////////
 
     urlinfo_t *requested_url = parse_url(argv[1]);
-    int newfd = get_socket(requested_url->hostname, requested_url->port);
-    // int bytes_recvd;
 
+    int newfd = get_socket(requested_url->hostname, requested_url->port);
     if (newfd == -1)
     {
         fprintf(stderr, "Fatal: Error binding to socket\n");
@@ -164,9 +163,6 @@ int main(int argc, char *argv[])
     }
 
     int fd_request = send_request(newfd, requested_url->hostname, requested_url->port, requested_url->path);
-
-    printf("# bytes sent: %i\n\n", fd_request);
-
     if (fd_request >= 0)
     {
         while ((numbytes = recv(newfd, buf, BUFSIZE - 1, 0)) > 0)
