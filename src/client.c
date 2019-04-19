@@ -55,20 +55,35 @@ urlinfo_t *parse_url(char *url)
     // checking for a properly formed hostname in a URI could get a bit messy
     // in C without some sort of library for pattern/regex parsing.
     uri_ptr = strchr(hostname, '/');
-    uri_ptr[0] = NULL;
-    urlinfo->path = strdup(uri_ptr + 1);
+    if (uri_ptr != NULL)
+    {
+        uri_ptr[0] = NULL;
+        path = strdup(uri_ptr + 1);
+    }
+    else
+    {
+        path = "/";
+    }
 
     uri_ptr = strchr(hostname, ':');
     if (uri_ptr != NULL)
     {
         uri_ptr[0] = NULL;
-        urlinfo->port = strdup(uri_ptr + 1);
+        port = strdup(uri_ptr + 1);
     }
     else
     {
         // TODO: (stretch) Implement URLs without ports
-        urlinfo->port = "80";
+        port = "80";
     }
+
+    urlinfo->hostname = strdup(hostname);
+    urlinfo->port = strdup(port);
+    urlinfo->path = strdup(path);
+
+    printf("Host: %s\n", urlinfo->hostname);
+    printf("Port: %s\n", urlinfo->port);
+    printf("Path: %s\n", urlinfo->path);
 
     return urlinfo;
 }
@@ -101,7 +116,7 @@ int send_request(int fd, char *hostname, char *port, char *path)
                 "\n",
                 path, hostname, port);
 
-    printf("Request header: %s\n", request);
+    printf("~Request header~\n%s\n", request);
 
     // Send it all!
     rv = send(fd, request, header_length, 0);
@@ -161,7 +176,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        fprintf(stderr, "Fatal: Local network error!\n");
+        fprintf(stderr, "Fatal: Network error!\n");
         exit(1);
     }
 
