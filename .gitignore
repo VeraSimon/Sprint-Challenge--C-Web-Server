@@ -4,3 +4,6 @@
 *.dSYM
 *.o
 src/client
+
+*.exe
+*.stackdump
