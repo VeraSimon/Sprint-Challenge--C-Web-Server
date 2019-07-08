@@ -12,10 +12,11 @@
 /**
  * Struct to hold all three pieces of a URL
  */
-typedef struct urlinfo_t {
-  char *hostname;
-  char *port;
-  char *path;
+typedef struct urlinfo_t
+{
+    char *hostname;
+    char *port;
+    char *path;
 } urlinfo_t;
 
 /**
@@ -27,29 +28,64 @@ typedef struct urlinfo_t {
 */
 urlinfo_t *parse_url(char *url)
 {
-  // copy the input URL so as not to mutate the original
-  char *hostname = strdup(url);
-  char *port;
-  char *path;
+    // copy the input URL so as not to mutate the original
+    char *hostname = strdup(url);
+    char *port;
+    char *path;
 
-  urlinfo_t *urlinfo = malloc(sizeof(urlinfo_t));
+    urlinfo_t *urlinfo = malloc(sizeof(urlinfo_t));
 
-  /*
-    We can parse the input URL by doing the following:
+    /*
+        We can parse the input URL by doing the following:
 
-    1. Use strchr to find the first backslash in the URL (this is assuming there is no http:// or https:// in the URL).
-    2. Set the path pointer to 1 character after the spot returned by strchr.
-    3. Overwrite the backslash with a '\0' so that we are no longer considering anything after the backslash.
-    4. Use strchr to find the first colon in the URL.
-    5. Set the port pointer to 1 character after the spot returned by strchr.
-    6. Overwrite the colon with a '\0' so that we are just left with the hostname.
-  */
+        1. Use strchr to find the first backslash in the URL (this is assuming there is no http:// or https:// in the URL).
+        2. Set the path pointer to 1 character after the spot returned by strchr.
+        3. Overwrite the backslash with a '\0' so that we are no longer considering anything after the backslash.
+        4. Use strchr to find the first colon in the URL.
+        5. Set the port pointer to 1 character after the spot returned by strchr.
+        6. Overwrite the colon with a '\0' so that we are just left with the hostname.
+    */
 
-  ///////////////////
-  // IMPLEMENT ME! //
-  ///////////////////
+    ///////////////////
+    // IMPLEMENT ME! //
+    ///////////////////
 
-  return urlinfo;
+    char *uri_ptr;
+    // NOTE: A lack of backslash doesn't necessarily denote a bad URI, but
+    // checking for a properly formed hostname in a URI could get a bit messy
+    // in C without some sort of library for pattern/regex parsing.
+    uri_ptr = strchr(hostname, '/');
+    if (uri_ptr != NULL)
+    {
+        uri_ptr[0] = NULL;
+        path = strdup(uri_ptr + 1);
+    }
+    else
+    {
+        path = NULL;
+    }
+
+    uri_ptr = strchr(hostname, ':');
+    if (uri_ptr != NULL)
+    {
+        uri_ptr[0] = NULL;
+        port = strdup(uri_ptr + 1);
+    }
+    else
+    {
+        // TODO: (stretch) Implement URLs without ports
+        port = "80";
+    }
+
+    urlinfo->hostname = strdup(hostname);
+    urlinfo->port = strdup(port);
+    urlinfo->path = strdup(path);
+
+    printf("Host: %s\n", urlinfo->hostname);
+    printf("Port: %s\n", urlinfo->port);
+    printf("Path: %s\n", urlinfo->path);
+
+    return urlinfo;
 }
 
 /**
@@ -64,28 +100,48 @@ urlinfo_t *parse_url(char *url)
 */
 int send_request(int fd, char *hostname, char *port, char *path)
 {
-  const int max_request_size = 16384;
-  char request[max_request_size];
-  int rv;
+    const int max_request_size = 16384;
+    char request[max_request_size];
+    int rv;
 
-  ///////////////////
-  // IMPLEMENT ME! //
-  ///////////////////
+    ///////////////////
+    // IMPLEMENT ME! //
+    ///////////////////
 
-  return 0;
+    int header_length =
+        sprintf(request,
+                "GET /%s HTTP/1.1\n"
+                "Host: %s:%s\n"
+                "Connection: close\n"
+                "\n",
+                path, hostname, port);
+
+    printf("\n~Request header~\n%s\n", request);
+
+    // Send it all!
+    rv = send(fd, request, header_length, 0);
+
+    if (rv < 0)
+    {
+        perror("send");
+    }
+
+    // return 0;
+    return rv;
 }
 
 int main(int argc, char *argv[])
-{  
-  int sockfd, numbytes;  
-  char buf[BUFSIZE];
+{
+    int sockfd, numbytes;
+    char buf[BUFSIZE];
 
-  if (argc != 2) {
-    fprintf(stderr,"usage: client HOSTNAME:PORT/PATH\n");
-    exit(1);
-  }
+    if (argc != 2)
+    {
+        fprintf(stderr, "usage: client HOSTNAME:PORT/PATH\n");
+        exit(1);
+    }
 
-  /*
+    /*
     1. Parse the input URL
     2. Initialize a socket by calling the `get_socket` function from lib.c
     3. Call `send_request` to construct the request and send it
@@ -93,9 +149,39 @@ int main(int argc, char *argv[])
     5. Clean up any allocated memory and open file descriptors.
   */
 
-  ///////////////////
-  // IMPLEMENT ME! //
-  ///////////////////
+    ///////////////////
+    // IMPLEMENT ME! //
+    ///////////////////
 
-  return 0;
+    urlinfo_t *requested_url = parse_url(argv[1]);
+
+    int newfd = get_socket(requested_url->hostname, requested_url->port);
+    if (newfd == -1)
+    {
+        fprintf(stderr, "Fatal: Error binding to socket\n");
+        exit(1);
+    }
+
+    int fd_request = send_request(newfd, requested_url->hostname, requested_url->port, requested_url->path);
+    if (fd_request >= 0)
+    {
+        while ((numbytes = recv(newfd, buf, BUFSIZE - 1, 0)) > 0)
+        {
+            printf("%s\n", buf);
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Fatal: Network error!\n");
+        exit(1);
+    }
+
+    free(requested_url->hostname);
+    free(requested_url->port);
+    free(requested_url->path);
+    free(requested_url);
+
+    close(newfd);
+
+    return 0;
 }
